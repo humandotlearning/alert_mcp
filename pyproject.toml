@@ -1,0 +1,19 @@
+[project]
+name = "alert_mcp"
+version = "0.1.0"
+description = "MCP server for CredentialWatch alerts"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "pydantic",
+    "mcp",  # Assuming a generic mcp package or just standard http tools
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "httpx",
+]
