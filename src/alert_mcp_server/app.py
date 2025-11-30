@@ -1,5 +1,5 @@
 import gradio as gr
-from tools import log_alert, get_open_alerts, mark_alert_resolved, summarize_alerts
+from .tools import log_alert, get_open_alerts, mark_alert_resolved, summarize_alerts
 
 # Define the Gradio interface
 # We can use a TabbedInterface to organize the tools for the UI,

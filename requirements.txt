@@ -1,0 +1,8 @@
+gradio[mcp]
+pydantic>=2.0
+python-dotenv
+mcp
+sqlalchemy
+fastapi
+uvicorn
+httpx
