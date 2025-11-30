@@ -1,19 +1,19 @@
 [project]
-name = "alert_mcp"
+name = "alert_mcp_server"
 version = "0.1.0"
-description = "MCP server for CredentialWatch alerts"
+description = "Gradio MCP server for CredentialWatch alerts"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "sqlalchemy",
+    "gradio[mcp]",
+    "httpx",
     "pydantic",
-    "mcp",  # Assuming a generic mcp package or just standard http tools
+    "python-dotenv",
+    "mcp"
 ]
 
 [tool.uv]
 dev-dependencies = [
     "pytest",
-    "httpx",
+    "pytest-asyncio"
 ]
