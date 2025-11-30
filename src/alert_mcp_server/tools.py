@@ -1,7 +1,7 @@
 import httpx
 from typing import List, Optional, Dict, Any
-from .config import ALERT_API_BASE_URL
-from .schemas import AlertCreate, AlertRead, AlertResolution
+from config import ALERT_API_BASE_URL
+from schemas import AlertCreate, AlertRead, AlertResolution
 
 # We'll use a synchronous client for simplicity in Gradio functions,
 # but Gradio supports async too. Let's use synchronous for now as it's often easier with Gradio tools.

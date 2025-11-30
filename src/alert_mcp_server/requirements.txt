@@ -1,0 +1,5 @@
+gradio[mcp]
+httpx
+pydantic
+python-dotenv
+mcp
