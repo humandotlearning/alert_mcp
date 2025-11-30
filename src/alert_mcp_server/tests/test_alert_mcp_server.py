@@ -1,104 +1,62 @@
-
 import pytest
-import httpx
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from src.alert_mcp_server.tools import log_alert, get_open_alerts, mark_alert_resolved, summarize_alerts
 
-@pytest.mark.asyncio
-async def test_log_alert():
-    mock_response = {
-        "id": 1,
-        "provider_id": 1,
-        "severity": "info",
-        "message": "Test alert",
-        "created_at": "2023-10-27T10:00:00"
-    }
+@pytest.fixture
+def mock_db_session():
+    with patch("src.alert_mcp_server.tools.get_db") as mock_get_db:
+        mock_session = MagicMock()
+        mock_get_db.return_value = iter([mock_session])
+        yield mock_session
 
-    # We use new_callable=AsyncMock for the client.post method because it is awaited.
-    # However, the return value (the response object) should be a synchronous Mock (MagicMock)
-    # because methods like .json() and .raise_for_status() are synchronous on the Response object.
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response_obj = MagicMock()
-        mock_response_obj.status_code = 200
-        mock_response_obj.json.return_value = mock_response
-        mock_response_obj.raise_for_status.return_value = None
+def test_log_alert(mock_db_session):
+    mock_alert_read = MagicMock()
+    # Mock model_dump return value
+    mock_alert_read.model_dump.return_value = {"id": 1, "provider_id": 1, "severity": "info", "message": "Test alert"}
 
-        mock_post.return_value = mock_response_obj
-
-        result = await log_alert(
+    with patch("src.alert_mcp.mcp_tools.log_alert", return_value=mock_alert_read) as mock_log:
+        result = log_alert(
             provider_id=1,
             severity="info",
             window_days=30,
             message="Test alert"
         )
 
-        assert result == mock_response
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-        assert kwargs["json"]["provider_id"] == 1
-        assert kwargs["json"]["severity"] == "info"
+        assert result["id"] == 1
+        mock_log.assert_called_once()
+        # Verify model_dump was called with mode='json'
+        mock_alert_read.model_dump.assert_called_with(mode='json')
 
-@pytest.mark.asyncio
-async def test_get_open_alerts():
-    mock_response = [
-        {
-            "id": 1,
-            "provider_id": 1,
-            "severity": "critical",
-            "message": "Critical alert",
-            "created_at": "2023-10-27T10:00:00"
-        }
-    ]
+def test_get_open_alerts(mock_db_session):
+    mock_alert_read = MagicMock()
+    mock_alert_read.model_dump.return_value = {"id": 1, "provider_id": 1, "severity": "critical"}
 
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
-        mock_response_obj = MagicMock()
-        mock_response_obj.status_code = 200
-        mock_response_obj.json.return_value = mock_response
-        mock_response_obj.raise_for_status.return_value = None
+    with patch("src.alert_mcp.mcp_tools.get_open_alerts", return_value=[mock_alert_read]) as mock_get:
+        result = get_open_alerts(provider_id=1)
 
-        mock_get.return_value = mock_response_obj
-
-        result = await get_open_alerts(provider_id=1)
-
-        assert result == mock_response
+        assert len(result) == 1
+        assert result[0]["id"] == 1
         mock_get.assert_called_once()
-        args, kwargs = mock_get.call_args
-        assert kwargs["params"]["provider_id"] == 1
+        mock_alert_read.model_dump.assert_called_with(mode='json')
 
-@pytest.mark.asyncio
-async def test_mark_alert_resolved():
-    mock_response = {
-        "id": 1,
-        "resolved_at": "2023-10-27T12:00:00",
-        "resolution_note": "Fixed"
-    }
+def test_mark_alert_resolved(mock_db_session):
+    mock_alert_read = MagicMock()
+    mock_alert_read.model_dump.return_value = {"id": 1, "resolved_at": "2023-10-27"}
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response_obj = MagicMock()
-        mock_response_obj.status_code = 200
-        mock_response_obj.json.return_value = mock_response
-        mock_response_obj.raise_for_status.return_value = None
+    with patch("src.alert_mcp.mcp_tools.mark_alert_resolved", return_value=mock_alert_read) as mock_mark:
+        result = mark_alert_resolved(alert_id=1, resolution_note="Fixed")
 
-        mock_post.return_value = mock_response_obj
+        assert result["id"] == 1
+        mock_mark.assert_called_once()
+        mock_alert_read.model_dump.assert_called_with(mode='json')
 
-        result = await mark_alert_resolved(alert_id=1, resolution_note="Fixed")
+def test_summarize_alerts(mock_db_session):
+    mock_summary = MagicMock()
+    mock_summary.model_dump.return_value = {"total_alerts": 10, "by_severity": {"info": 5}}
 
-        assert result == mock_response
-        mock_post.assert_called_once()
+    with patch("src.alert_mcp.mcp_tools.summarize_alerts", return_value=mock_summary) as mock_sum:
+        result = summarize_alerts(window_days=7)
 
-@pytest.mark.asyncio
-async def test_summarize_alerts():
-    mock_response = {"info": 5, "warning": 2, "critical": 1}
-
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_response_obj = MagicMock()
-        mock_response_obj.status_code = 200
-        mock_response_obj.json.return_value = mock_response
-        mock_response_obj.raise_for_status.return_value = None
-
-        mock_post.return_value = mock_response_obj
-
-        result = await summarize_alerts(window_days=7)
-
-        assert result == mock_response
-        mock_post.assert_called_once()
+        assert result["total_alerts"] == 10
+        mock_sum.assert_called_once()
+        mock_summary.model_dump.assert_called_with(mode='json')
